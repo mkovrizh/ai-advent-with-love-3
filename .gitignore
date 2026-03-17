@@ -1,0 +1,6 @@
+.claude
+.env
+dist
+node_modules
+tsconfig.tsbuildinfo
+tsconfig.node.tsbuildinfo

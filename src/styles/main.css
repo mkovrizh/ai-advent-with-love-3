@@ -1,0 +1,87 @@
+/* Claude.ai inspired theme */
+
+:root {
+  /* Backgrounds */
+  --bg-page: #2B2A27;
+  --bg-sidebar: #1A1915;
+  --bg-surface: #35332F;
+  --bg-input: #393631;
+  --bg-user-message: #3D3B37;
+  --bg-hover: #403E3A;
+
+  /* Borders */
+  --border-subtle: #4A4743;
+  --border-input: #504D49;
+
+  /* Text */
+  --text-primary: #E8E4DB;
+  --text-secondary: #A8A49B;
+  --text-placeholder: #6B6760;
+
+  /* Accent */
+  --accent-primary: #D97706;
+  --accent-hover: #E5850A;
+  --accent-success: #4ADE80;
+  --accent-warning: #FBBF24;
+  --accent-danger: #F87171;
+
+  /* Misc */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  font-family: 'Söhne', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-placeholder);
+}
+
+/* Quasar overrides for dark theme */
+.q-page {
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
+
+.q-card {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+}
+
+.q-btn--flat {
+  color: var(--text-secondary);
+}
+
+.q-toolbar {
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
+
+.q-dialog__inner > .q-card {
+  background: var(--bg-surface) !important;
+}
