@@ -28,13 +28,17 @@
             </button>
             <div class="header-model">
                 <span class="model-name">Claude</span>
-                <select v-model="selectedModel" class="model-select">
+                <select v-model="selectedModel" class="model-select" :disabled="modelsLoading">
+                    <option v-if="modelsLoading" value="" disabled>Loading...</option>
                     <option
                         v-for="m in availableModels"
                         :key="m.id"
                         :value="m.id"
-                    >{{ m.label }}</option>
+                    >{{ m.displayName }}</option>
                 </select>
+                <span v-if="modelsError" class="models-error" :title="modelsError">
+                    <q-icon name="error_outline" size="16px" />
+                </span>
             </div>
             <button class="icon-btn" @click="showSettings = true" title="System Prompt">
                 <q-icon name="tune" size="20px" />
@@ -46,12 +50,7 @@
             <!-- Empty state -->
             <div v-if="messages.length === 0 && !isStreaming" class="empty-state">
                 <div class="empty-icon">
-                    <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="52" height="52" rx="14" fill="#D97706" fill-opacity="0.15"/>
-                        <path d="M17 20C17 18.3431 18.3431 17 20 17H32C33.6569 17 35 18.3431 35 20V28C35 29.6569 33.6569 31 32 31H28L24 35V31H20C18.3431 31 17 29.6569 17 28V20Z" fill="#D97706" fill-opacity="0.6"/>
-                        <circle cx="23" cy="24" r="1.5" fill="#2B2A27"/>
-                        <circle cx="29" cy="24" r="1.5" fill="#2B2A27"/>
-                    </svg>
+                    <q-icon name="chat_bubble_outline" size="52px" />
                 </div>
                 <h2 class="empty-title">How can I help you today?</h2>
             </div>
@@ -66,10 +65,7 @@
                 >
                     <div class="message-inner">
                         <div v-if="msg.role === 'assistant'" class="avatar avatar-claude">
-                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                                <circle cx="9" cy="9" r="9" fill="#D97706"/>
-                                <path d="M6 8.5C6 7.67 6.67 7 7.5 7H10.5C11.33 7 12 7.67 12 8.5V10.5C12 11.33 11.33 12 10.5 12H9L7.5 13.5V12H7.5C6.67 12 6 11.33 6 10.5V8.5Z" fill="#1A1915"/>
-                            </svg>
+                            <q-icon name="smart_toy" size="18px" />
                         </div>
                         <div v-else class="avatar avatar-user">
                             <q-icon name="person" size="16px" />
@@ -85,10 +81,7 @@
                 <div v-if="isStreaming" class="message-row message-assistant">
                     <div class="message-inner">
                         <div class="avatar avatar-claude">
-                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                                <circle cx="9" cy="9" r="9" fill="#D97706"/>
-                                <path d="M6 8.5C6 7.67 6.67 7 7.5 7H10.5C11.33 7 12 7.67 12 8.5V10.5C12 11.33 11.33 12 10.5 12H9L7.5 13.5V12H7.5C6.67 12 6 11.33 6 10.5V8.5Z" fill="#1A1915"/>
-                            </svg>
+                            <q-icon name="smart_toy" size="18px" />
                         </div>
                         <div class="message-content">
                             <span class="message-role">Claude</span>
@@ -133,15 +126,7 @@
                     @click="sendMessage"
                     title="Send message"
                 >
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                        <path
-                            d="M9 15V3M9 3L3.5 8.5M9 3L14.5 8.5"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
-                    </svg>
+                    <q-icon name="arrow_upward" size="18px" />
                 </button>
             </div>
         </div>
@@ -149,28 +134,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick, watch, onMounted } from 'vue'
+import { AnthropicModelProvider, type ModelInfo, type ChatMessage } from '@/services/ModelProvider'
 
-interface ChatMessage {
-    role: 'user' | 'assistant'
-    content: string
+const modelProvider = new AnthropicModelProvider()
+const availableModels = ref<ModelInfo[]>([])
+const selectedModel = ref('')
+const modelsLoading = ref(false)
+const modelsError = ref('')
+
+async function loadModels(): Promise<void> {
+    modelsLoading.value = true
+    try {
+        availableModels.value = await modelProvider.fetchModels()
+        if (availableModels.value.length > 0) { selectedModel.value = availableModels.value[0]!.id }
+    }
+    catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        modelsError.value = msg
+    }
+    finally {
+        modelsLoading.value = false
+    }
 }
 
-interface ModelOption {
-    id: string
-    label: string
-}
-
-const availableModels: ModelOption[] = [
-    { id: 'claude-sonnet-4-20250514', label: 'Sonnet 4' },
-    { id: 'claude-opus-4-20250514', label: 'Opus 4' },
-    { id: 'claude-haiku-4-20250414', label: 'Haiku 4' },
-    { id: 'claude-3-5-sonnet-20241022', label: 'Sonnet 3.5' },
-    { id: 'claude-3-5-haiku-20241022', label: 'Haiku 3.5' },
-    { id: 'claude-3-opus-20240229', label: 'Opus 3' },
-]
-
-const selectedModel = ref<string>(availableModels[0]!.id)
+onMounted(loadModels)
 const messages = ref<ChatMessage[]>([])
 const userInput = ref('')
 const systemPrompt = ref('You are a helpful, friendly assistant.')
@@ -191,100 +179,54 @@ function handleKeydown(e: KeyboardEvent) {
     }
 }
 
-function autoResize() {
+function autoResize(): void {
     const el = inputRef.value
-    if (!el) return
+    if (!el) { return }
     el.style.height = 'auto'
     el.style.height = Math.min(el.scrollHeight, 200) + 'px'
 }
 
-function scrollToBottom() {
+function scrollToBottom(): void {
     nextTick(() => {
         const el = messagesRef.value
-        if (el) el.scrollTop = el.scrollHeight
+        if (el) { el.scrollTop = el.scrollHeight }
     })
 }
 
-async function sendMessage() {
+async function sendMessage(): Promise<void> {
     const text = userInput.value.trim()
-    if (!text || isStreaming.value) return
-
+    if (!text || isStreaming.value) { return }
     errorMessage.value = ''
     messages.value.push({ role: 'user', content: text })
     userInput.value = ''
-
     // Reset textarea height
     nextTick(() => {
         if (inputRef.value) inputRef.value.style.height = 'auto'
     })
-
     scrollToBottom()
-
     isStreaming.value = true
     streamingText.value = ''
-
     try {
-        const apiMessages = messages.value.map(m => ({
-            role: m.role,
-            content: m.content
-        }))
-
-        const response = await fetch('/api/anthropic/v1/messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+        const fullText = await modelProvider.sendMessageStream(
+            {
                 model: selectedModel.value,
-                max_tokens: 4096,
-                system: systemPrompt.value || undefined,
-                messages: apiMessages,
-                stream: true
-            })
-        })
-
-        if (!response.ok) {
-            const errBody = await response.text()
-            throw new Error(`API error ${response.status}: ${errBody}`)
-        }
-
-        const reader = response.body!.getReader()
-        const decoder = new TextDecoder()
-        let buffer = ''
-
-        while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-
-            buffer += decoder.decode(value, { stream: true })
-
-            const lines = buffer.split('\n')
-            // Keep the last potentially incomplete line in the buffer
-            buffer = lines.pop() || ''
-
-            for (const line of lines) {
-                if (!line.startsWith('data: ')) continue
-                const jsonStr = line.slice(6).trim()
-                if (jsonStr === '[DONE]') continue
-
-                try {
-                    const event = JSON.parse(jsonStr)
-                    if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-                        streamingText.value += event.delta.text
-                        scrollToBottom()
-                    }
-                } catch {
-                    // Skip malformed JSON lines
-                }
+                messages: messages.value,
+                system: systemPrompt.value
+            },
+            (delta) => {
+                streamingText.value += delta
+                scrollToBottom()
             }
+        )
+        if (fullText) {
+            messages.value.push({ role: 'assistant', content: fullText })
         }
-
-        // Finalize: push assistant message
-        if (streamingText.value) {
-            messages.value.push({ role: 'assistant', content: streamingText.value })
-        }
-    } catch (err: unknown) {
+    }
+    catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
         errorMessage.value = msg
-    } finally {
+    }
+    finally {
         isStreaming.value = false
         streamingText.value = ''
         scrollToBottom()
@@ -293,6 +235,7 @@ async function sendMessage() {
 
 // Auto-scroll when messages change
 watch(() => messages.value.length, scrollToBottom)
+
 </script>
 
 <style scoped>
@@ -328,7 +271,6 @@ watch(() => messages.value.length, scrollToBottom)
 }
 
 .model-select {
-    appearance: none;
     border: 1px solid var(--border-subtle);
     border-radius: 12px;
     background: var(--bg-surface);
@@ -336,13 +278,17 @@ watch(() => messages.value.length, scrollToBottom)
     font-size: 0.8rem;
     font-weight: 600;
     font-family: inherit;
-    padding: 3px 24px 3px 10px;
+    padding: 3px 10px;
     cursor: pointer;
     outline: none;
     transition: border-color 0.15s;
-    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23A8A49B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
+}
+
+.models-error {
+    display: flex;
+    align-items: center;
+    color: var(--accent-danger);
+    cursor: help;
 }
 
 .model-select:hover {
@@ -452,7 +398,6 @@ watch(() => messages.value.length, scrollToBottom)
     font-weight: 600;
     color: var(--text-secondary);
     margin-bottom: 4px;
-    text-transform: uppercase;
     letter-spacing: 0.03em;
 }
 
