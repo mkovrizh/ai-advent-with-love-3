@@ -13,7 +13,15 @@ export interface SendMessageParams {
     messages: ChatMessage[],
     system?: string,
     maxTokens?: number,
-    stopSequences?: string[]
+    stopSequences?: string[],
+    temperature?: number,
+    topP?: number,
+    topK?: number
+}
+
+export interface StreamResult {
+    text: string,
+    outputTokens: number
 }
 
 export class AnthropicModelProvider {
@@ -28,7 +36,7 @@ export class AnthropicModelProvider {
         return data.data.map((m: {id: string, display_name: string}) => ({id: m.id, displayName: m.display_name}))
     }
 
-    async sendMessageStream(params: SendMessageParams, onDelta: (text: string) => void): Promise<string> {
+    async sendMessageStream(params: SendMessageParams, onDelta: (text: string) => void): Promise<StreamResult> {
         const response = await fetch(`${this.baseUrl}/v1/messages`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -38,7 +46,10 @@ export class AnthropicModelProvider {
                 system: params.system || undefined,
                 messages: params.messages,
                 stream: true,
-                ...(params.stopSequences?.length ? { stop_sequences: params.stopSequences } : {})
+                ...(params.stopSequences?.length ? { stop_sequences: params.stopSequences } : {}),
+                ...(params.temperature != null ? { temperature: params.temperature } : {}),
+                ...(params.topP != null ? { top_p: params.topP } : {}),
+                ...(params.topK != null ? { top_k: params.topK } : {})
             })
         })
         if (!response.ok) {
@@ -49,6 +60,7 @@ export class AnthropicModelProvider {
         const decoder = new TextDecoder()
         let buffer = ''
         let fullText = ''
+        let outputTokens = 0
         while (true) {
             const { done, value } = await reader.read()
             if (done) { break }
@@ -65,11 +77,14 @@ export class AnthropicModelProvider {
                         fullText += event.delta.text
                         onDelta(event.delta.text)
                     }
+                    if (event.type === 'message_delta' && event.usage?.output_tokens) {
+                        outputTokens = event.usage.output_tokens
+                    }
                 } catch {
                     // Skip malformed JSON lines
                 }
             }
         }
-        return fullText
+        return { text: fullText, outputTokens }
     }
 }

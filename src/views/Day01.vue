@@ -26,6 +26,7 @@
             <button class="icon-btn" @click="$router.push('/')" title="Home">
                 <q-icon name="arrow_back" size="20px" />
             </button>
+            <span style="margin-right:auto;padding-left:8px;">Day 01: Chat with Claude AI</span>
             <div class="header-model">
                 <span class="model-name">Claude</span>
                 <select v-model="selectedModel" class="model-select" :disabled="modelsLoading">
@@ -207,7 +208,7 @@ async function sendMessage(): Promise<void> {
     isStreaming.value = true
     streamingText.value = ''
     try {
-        const fullText = await modelProvider.sendMessageStream(
+        const { text } = await modelProvider.sendMessageStream(
             {
                 model: selectedModel.value,
                 messages: messages.value,
@@ -218,8 +219,8 @@ async function sendMessage(): Promise<void> {
                 scrollToBottom()
             }
         )
-        if (fullText) {
-            messages.value.push({ role: 'assistant', content: fullText })
+        if (text) {
+            messages.value.push({ role: 'assistant', content: text })
         }
     }
     catch (err: unknown) {
@@ -308,6 +309,7 @@ watch(() => messages.value.length, scrollToBottom)
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-left: 8px;
     width: 36px;
     height: 36px;
     border: none;

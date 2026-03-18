@@ -41,6 +41,30 @@
                 />
             </div>
             <div class="constraint-row">
+                <label class="constraint-label">Temperature:</label>
+                <input
+                    v-model.number="temperature"
+                    type="number" min="0" max="1" step="0.1" class="constraint-input constraint-input-short"
+                    :disabled="isStreaming"
+                />
+            </div>
+            <div class="constraint-row">
+                <label class="constraint-label">Top P:</label>
+                <input
+                    v-model.number="topP"
+                    type="number" min="0" max="1" step="0.1" class="constraint-input constraint-input-short"
+                    :disabled="isStreaming"
+                />
+            </div>
+            <div class="constraint-row">
+                <label class="constraint-label">Top K:</label>
+                <input
+                    v-model.number="topK"
+                    type="number" min="0" step="1" class="constraint-input constraint-input-short"
+                    :disabled="isStreaming"
+                />
+            </div>
+            <div class="constraint-row">
                 <label class="constraint-label">Stop sequences (comma-separated):</label>
                 <input
                     v-model="stopSequencesInput"
@@ -82,6 +106,7 @@
                 <div class="col-header">
                     <q-icon name="lock_open" size="18px" />
                     <span>Without constraints</span>
+                    <span v-if="freeOutputTokens > 0" class="token-count">{{ freeOutputTokens }} output tokens</span>
                 </div>
                 <div class="col-body">
                     <div v-if="!freeResponse && !freeStreaming" class="col-empty">
@@ -98,6 +123,7 @@
                 <div class="col-header">
                     <q-icon name="tune" size="18px" />
                     <span>With constraints</span>
+                    <span v-if="constrainedOutputTokens > 0" class="token-count">{{ constrainedOutputTokens }} output tokens</span>
                 </div>
                 <div class="col-body">
                     <div v-if="!constrainedResponse && !constrainedStreaming" class="col-empty">
@@ -141,19 +167,24 @@ async function loadModels(): Promise<void> {
 onMounted(loadModels)
 
 const userPrompt = ref('')
-const formatInstruction = ref('Respond in JSON with keys: title, summary, tags')
-const maxTokens = ref(150)
+const formatInstruction = ref('')
+const maxTokens = ref(50)
+const temperature = ref(1)
+const topP = ref(0)
+const topK = ref(0)
 const stopSequencesInput = ref('')
 
 const freeResponse = ref('')
 const freeStreamingText = ref('')
 const freeStreaming = ref(false)
 const freeError = ref('')
+const freeOutputTokens = ref(0)
 
 const constrainedResponse = ref('')
 const constrainedStreamingText = ref('')
 const constrainedStreaming = ref(false)
 const constrainedError = ref('')
+const constrainedOutputTokens = ref(0)
 
 const inputRef = ref<HTMLTextAreaElement | null>(null)
 
@@ -186,6 +217,7 @@ async function sendFree(text: string): Promise<void> {
     freeStreamingText.value = ''
     freeStreaming.value = true
     freeError.value = ''
+    freeOutputTokens.value = 0
     try {
         const result = await modelProvider.sendMessageStream(
             {
@@ -195,7 +227,8 @@ async function sendFree(text: string): Promise<void> {
             },
             (delta) => { freeStreamingText.value += delta }
         )
-        freeResponse.value = result
+        freeResponse.value = result.text
+        freeOutputTokens.value = result.outputTokens
     }
     catch (err: unknown) {
         freeError.value = err instanceof Error ? err.message : String(err)
@@ -211,19 +244,18 @@ async function sendConstrained(text: string): Promise<void> {
     constrainedStreamingText.value = ''
     constrainedStreaming.value = true
     constrainedError.value = ''
-
+    constrainedOutputTokens.value = 0
     const systemParts: string[] = []
     if (formatInstruction.value.trim()) {
         systemParts.push(`Response format: ${formatInstruction.value.trim()}`)
     }
     if (maxTokens.value < 4096) {
-        systemParts.push(`Keep your response concise, no more than ${maxTokens.value} tokens.`)
+        systemParts.push(`Учти, что длина твоего ответа не должна превышать ${maxTokens.value} токенов.`)
     }
     const stops = parsedStopSequences()
     if (stops.length > 0) {
-        systemParts.push(`When you are done, end your response with: ${stops[0]}`)
+        systemParts.push(`Когда закончишь с ответом, добавь в конце выражение: ${stops[0]}`)
     }
-
     try {
         const result = await modelProvider.sendMessageStream(
             {
@@ -231,11 +263,15 @@ async function sendConstrained(text: string): Promise<void> {
                 messages: [{ role: 'user', content: text }],
                 system: systemParts.join('\n'),
                 maxTokens: maxTokens.value,
-                stopSequences: stops.length > 0 ? stops : undefined
+                stopSequences: stops.length > 0 ? stops : undefined,
+                temperature: temperature.value || undefined,
+                topP: topP.value || undefined,
+                topK: topK.value || undefined
             },
             (delta) => { constrainedStreamingText.value += delta }
         )
-        constrainedResponse.value = result
+        constrainedResponse.value = result.text
+        constrainedOutputTokens.value = result.outputTokens
     }
     catch (err: unknown) {
         constrainedError.value = err instanceof Error ? err.message : String(err)
@@ -410,10 +446,9 @@ async function sendBoth(): Promise<void> {
 .constraints-panel {
     flex-shrink: 0;
     max-width: 900px;
-    margin: 0 auto;
-    width: 100%;
+    margin: 8px auto 0;
+    width: calc(100% - 32px);
     padding: 12px 16px;
-    margin-top: 8px;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -497,6 +532,14 @@ async function sendBoth(): Promise<void> {
     color: var(--text-secondary);
     border-bottom: 1px solid var(--border-subtle);
     flex-shrink: 0;
+}
+
+.token-count {
+    margin-left: auto;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-placeholder);
+    white-space: nowrap;
 }
 
 .col-body {
