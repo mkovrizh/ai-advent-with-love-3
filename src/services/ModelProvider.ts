@@ -12,7 +12,8 @@ export interface SendMessageParams {
     model: string,
     messages: ChatMessage[],
     system?: string,
-    maxTokens?: number
+    maxTokens?: number,
+    stopSequences?: string[]
 }
 
 export class AnthropicModelProvider {
@@ -36,7 +37,8 @@ export class AnthropicModelProvider {
                 max_tokens: params.maxTokens ?? 4096,
                 system: params.system || undefined,
                 messages: params.messages,
-                stream: true
+                stream: true,
+                ...(params.stopSequences?.length ? { stop_sequences: params.stopSequences } : {})
             })
         })
         if (!response.ok) {

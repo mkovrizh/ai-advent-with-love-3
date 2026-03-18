@@ -1,6 +1,6 @@
 # AI Advent with Love #3
 
-Advent calendar of AI experiments — 25 days, 25 mini-projects exploring LLM capabilities.
+Advent calendar of AI experiments — 35 days, 35 mini-projects exploring LLM capabilities.
 
 ## Stack
 
@@ -34,3 +34,4 @@ Open http://localhost:8001
 | Day | Topic | Description |
 |-----|-------|-------------|
 | 01  | Chat  | Chat interface with Claude, model selection, system prompt |
+| 02  | Response Format | Compare responses with and without format/length/stop constraints |

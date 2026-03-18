@@ -35,6 +35,12 @@ const navItems = [
         path: '/day01',
         description: 'Chat with Claude AI',
         icon: 'chat'
+    },
+    {
+        name: 'Day 02: Format',
+        path: '/day02',
+        description: 'Response format constraints',
+        icon: 'format_list_bulleted'
     }
 ]
 
