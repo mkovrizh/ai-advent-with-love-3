@@ -41,6 +41,12 @@ const navItems = [
         path: '/day02',
         description: 'Response format constraints',
         icon: 'format_list_bulleted'
+    },
+    {
+        name: 'Day 03: Reasoning',
+        path: '/day03',
+        description: 'Compare reasoning strategies',
+        icon: 'psychology'
     }
 ]
 
