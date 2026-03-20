@@ -36,3 +36,4 @@ Open http://localhost:8001
 | 01  | Chat  | Chat interface with Claude, model selection, system prompt |
 | 02  | Response Format | Compare responses with and without format/length/stop constraints |
 | 03  | Reasoning | Compare 4 reasoning strategies: direct, step-by-step, meta-prompt, expert panel |
+| 04  | Temperature | Compare responses at temperature 0, 0.6, 1.0 — accuracy, creativity, diversity |

@@ -47,6 +47,12 @@ const navItems = [
         path: '/day03',
         description: 'Compare reasoning strategies',
         icon: 'psychology'
+    },
+    {
+        name: 'Day 04: Temperature',
+        path: '/day04',
+        description: 'Accuracy vs creativity vs diversity',
+        icon: 'thermostat'
     }
 ]
 
