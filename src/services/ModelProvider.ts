@@ -21,6 +21,7 @@ export interface SendMessageParams {
 
 export interface StreamResult {
     text: string,
+    inputTokens: number,
     outputTokens: number
 }
 
@@ -46,10 +47,10 @@ export class AnthropicModelProvider {
                 system: params.system || undefined,
                 messages: params.messages,
                 stream: true,
-                ...(params.stopSequences?.length ? { stop_sequences: params.stopSequences } : {}),
-                ...(params.temperature != null ? { temperature: params.temperature } : {}),
-                ...(params.topP != null ? { top_p: params.topP } : {}),
-                ...(params.topK != null ? { top_k: params.topK } : {})
+                ...(params.stopSequences?.length ? {stop_sequences: params.stopSequences} : {}),
+                ...(params.temperature != null ? {temperature: params.temperature} : {}),
+                ...(params.topP != null ? {top_p: params.topP} : {}),
+                ...(params.topK != null ? {top_k: params.topK} : {})
             })
         })
         if (!response.ok) {
@@ -60,9 +61,10 @@ export class AnthropicModelProvider {
         const decoder = new TextDecoder()
         let buffer = ''
         let fullText = ''
+        let inputTokens = 0
         let outputTokens = 0
         while (true) {
-            const { done, value } = await reader.read()
+            const {done, value} = await reader.read()
             if (done) { break }
             buffer += decoder.decode(value, { stream: true })
             const lines = buffer.split('\n')
@@ -77,6 +79,9 @@ export class AnthropicModelProvider {
                         fullText += event.delta.text
                         onDelta(event.delta.text)
                     }
+                    if (event.type === 'message_start' && event.message?.usage?.input_tokens) {
+                        inputTokens = event.message.usage.input_tokens
+                    }
                     if (event.type === 'message_delta' && event.usage?.output_tokens) {
                         outputTokens = event.usage.output_tokens
                     }
@@ -85,6 +90,6 @@ export class AnthropicModelProvider {
                 }
             }
         }
-        return { text: fullText, outputTokens }
+        return {text: fullText, inputTokens, outputTokens}
     }
 }

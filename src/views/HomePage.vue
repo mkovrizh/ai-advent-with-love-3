@@ -53,6 +53,12 @@ const navItems = [
         path: '/day04',
         description: 'Accuracy vs creativity vs diversity',
         icon: 'thermostat'
+    },
+    {
+        name: 'Day 05: Models',
+        path: '/day05',
+        description: 'Compare Haiku, Sonnet, Opus',
+        icon: 'compare_arrows'
     }
 ]
 
